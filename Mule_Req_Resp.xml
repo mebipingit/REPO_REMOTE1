@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wmq="http://www.mulesoft.org/schema/mule/ee/wmq" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/wmq http://www.mulesoft.org/schema/mule/ee/wmq/current/mule-wmq-ee.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="localhost" port="8081" doc:name="HTTP Listener Configuration"/>
+   <wmq:connector name="WMQ" hostName="localhost" port="1416" queueManager="QM1" transportType="BINDINGS_MQ" validateConnections="true" maxRedelivery="1" doc:name="WMQ"/>
+    <flow name="synchronous-wmq-testFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/reqres" doc:name="HTTP"/>
+        <set-payload value="Requesting!!!" doc:name="Set Payload"/>
+        <logger message="Logger 1:  #[message]" level="INFO" doc:name="Logger1"/>
+
+        <request-reply doc:name="Request-Reply" storePrefix="ReqRes" timeout="4000">
+            <wmq:outbound-endpoint queue="WMBIN" connector-ref="WMQ" doc:name="WMQ"  messageType="MQMT_REPLY" targetClient="JMS_COMPLIANT"/>
+            <wmq:inbound-endpoint queue="WMBREPLY" connector-ref="WMQ" doc:name="WMQ"/>
+        </request-reply>
+    </flow>
+    <flow name="synchronous-wmq-testFlow1">
+        <wmq:inbound-endpoint queue="WMBIN" connector-ref="WMQ" doc:name="WMQ" exchange-pattern="request-response"/>
+        <copy-properties propertyName="MULE_CORRELATION_ID" doc:name="Property"/>
+
+        <set-payload value="Responding" doc:name="Set Payload"/>
+    </flow>
+</mule>
